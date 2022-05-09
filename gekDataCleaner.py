@@ -44,16 +44,16 @@ def get_dataframe(dataframe, col_name=None, sep=None):
 
 
 
-def reduce_mem_usage(dataframe, copy=True, logs=True):
+def reduce_mem_usage(dataframe, copy=False, logs=True):
     """reduce memory usage
 
     Args:
         dataframe (dataframe/path): dataframe or path for dataframe 
-        copy (bool, optional): write changes to original dataframe. Defaults to True.
+        copy (bool, optional): write changes to original dataframe. Defaults to False.
         logs (bool, optional): show logs about memory usage. Defaults to True.
 
     Returns:
-        dataframe: new dataframe or original dataframe with changes
+        dataframe: new dataframe or original dataframe with changes (columns assigned data types suitable for their values)
     """
     # not to get an error
     dataframe = get_dataframe(dataframe)
@@ -92,22 +92,48 @@ def reduce_mem_usage(dataframe, copy=True, logs=True):
                 else:
                     df[col] = df[col].astype(np.float64)
         else:
-            df[col] = df[col].astype('category')
+            df[col] = df[col].astype('object')
 
     end_mem = df.memory_usage().sum() / 1024**2
 
     if logs:
-        print(f'Memory usage of dataframe is {round(start_mem,2)} MB')
-        print(f'Memory usage after optimization is: {round(end_mem,2)} MB')
-        print(f'Decreased by {round(100 * (start_mem - end_mem) / start_mem, 1)}%')
+        print(f'Memory usage of dataframe is {round(start_mem, 5)} MB')
+        print(f'Memory usage after optimization is: {round(end_mem, 5)} MB')
+        print(f'Decreased by {round(100 * (start_mem - end_mem) / start_mem, 2)}%')
     
     return df
 
+def conversion_binary_pharmacies(dataframe, copy=False, logs=True):
+    """conversion of binary pharmacies
 
+    Args:
+        dataframe (dataframe/path): dataframe or path for dataframe 
+        copy (bool, optional): write changes to original dataframe. Defaults to False.
+        logs (bool, optional): show logs about memory usage. Defaults to True.
 
+    Returns:
+        dataframe: new dataframe or original dataframe with changes (all binary columns will fill by 0 and 1)
+    """
 
+    if copy:
+        df = get_dataframe(dataframe).copy()
+    else:
+        df =  get_dataframe(dataframe)
 
-# 'exsel_test.xlsx'
-# df = pd.read_csv('housing.csv')
-print(reduce_mem_usage('data\exsel_test.xlsx'))
-# print(get_dataframe('data\exsel_test.xlsx', 'age'))
+    start_mem = df.memory_usage().sum() / 1024**2
+
+    for col in df.columns:
+        if np.dtype(df[col]) == np.dtype('O') and df[col].describe()['unique'] == 2:
+            first_value, second_value = set(df[col].values)
+            df.loc[(df[col] == first_value), col] = 0
+            df.loc[(df[col] == second_value), col] = 1
+            df[col] = df[col].astype(np.int8)
+    
+    end_mem = df.memory_usage().sum() / 1024**2
+
+    if logs:
+        print(f'Memory usage of dataframe is {round(start_mem, 6)} MB')
+        print(f'Memory usage after optimization is: {round(end_mem, 6)} MB')
+        print(f'Decreased by {round(100 * (start_mem - end_mem) / start_mem, 2)}%')
+
+    return df
