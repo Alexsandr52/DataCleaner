@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 
+
 def get_dataframe(dataframe, col_name=None, sep=None):
     """get dataframe for easy use of the library
 
